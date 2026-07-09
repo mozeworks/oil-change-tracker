@@ -1,0 +1,89 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0f172a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Oil Tracker">
+<title>Oil Change Tracker</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="style.css">
+
+<div id="app"></div>
+
+<!-- Add / Edit car sheet -->
+<div id="sheet-backdrop" class="backdrop hidden"></div>
+<div id="car-sheet" class="sheet hidden">
+  <div class="sheet-handle"></div>
+  <form id="car-form">
+    <h2 id="sheet-title">Add Car</h2>
+
+    <label>Car name
+      <input type="text" id="f-name" placeholder="e.g. Mom's Corolla" required>
+    </label>
+
+    <label>Make (optional, for oil suggestion)
+      <select id="f-make">
+        <option value="">— Select to auto-fill —</option>
+      </select>
+    </label>
+
+    <div class="row">
+      <label>Oil type
+        <input type="text" id="f-oiltype" placeholder="e.g. Full Synthetic 0W-20">
+      </label>
+    </div>
+
+    <div class="row2">
+      <label>Manufacturer interval (mi)
+        <input type="number" inputmode="numeric" id="f-mfginterval" placeholder="10000" required>
+      </label>
+      <label>Recommended interval (mi)
+        <input type="number" inputmode="numeric" id="f-recinterval" placeholder="5000" required>
+      </label>
+    </div>
+    <p class="hint" id="rec-hint">We suggest half the manufacturer interval for better engine life.</p>
+
+    <div class="row2">
+      <label>Last change date
+        <input type="date" id="f-lastdate" required>
+      </label>
+      <label>Odometer at change (mi)
+        <input type="number" inputmode="numeric" id="f-lastmiles" placeholder="45000" required>
+      </label>
+    </div>
+
+    <label>Average miles driven / month
+      <input type="number" inputmode="numeric" id="f-avgmiles" placeholder="1000" required>
+    </label>
+
+    <div class="sheet-actions">
+      <button type="button" id="btn-delete" class="btn btn-danger hidden">Delete</button>
+      <button type="button" id="btn-cancel" class="btn btn-ghost">Cancel</button>
+      <button type="submit" class="btn btn-primary">Save</button>
+    </div>
+  </form>
+</div>
+
+<!-- Log oil change sheet -->
+<div id="log-sheet" class="sheet hidden">
+  <div class="sheet-handle"></div>
+  <form id="log-form">
+    <h2>Log Oil Change</h2>
+    <p class="hint" id="log-car-name"></p>
+    <label>Date changed
+      <input type="date" id="l-date" required>
+    </label>
+    <label>Odometer (mi)
+      <input type="number" inputmode="numeric" id="l-miles" required>
+    </label>
+    <div class="sheet-actions">
+      <button type="button" id="log-cancel" class="btn btn-ghost">Cancel</button>
+      <button type="submit" class="btn btn-primary">Save</button>
+    </div>
+  </form>
+</div>
+
+<script src="carsdata.js"></script>
+<script src="app.js"></script>
