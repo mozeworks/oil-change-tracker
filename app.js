@@ -50,25 +50,24 @@ function fmtDate(d) {
 }
 
 // ---- Core computation ----
+// Oil is due at the recommended mileage OR 6 months after the last change, whichever comes
+// first — oil degrades with age even in a car that's barely driven, so the date cap never
+// stretches out no matter how little (or how much) the car is driven.
+const MAX_MONTHS = 6;
+
 function computeStatus(car) {
   const lastDate = parseDate(car.lastDate);
   const today = new Date();
-  const avg = Math.max(car.avgMiles, 1);
 
   const nextMiles = car.lastMiles + car.recInterval;
-  const monthsToNext = car.recInterval / avg;
-  const nextDate = addMonths(lastDate, monthsToNext);
-
-  const monthsElapsed = Math.max(monthsBetween(lastDate, today), 0);
-  const estCurrentMiles = Math.round(car.lastMiles + avg * monthsElapsed);
-  const milesRemaining = nextMiles - estCurrentMiles;
+  const nextDate = addMonths(lastDate, MAX_MONTHS);
   const daysRemaining = Math.round((nextDate - today) / 86400000);
 
   let status = "ok";
-  if (milesRemaining <= 0 || daysRemaining <= 0) status = "overdue";
-  else if (milesRemaining <= 500 || daysRemaining <= 21) status = "soon";
+  if (daysRemaining <= 0) status = "overdue";
+  else if (daysRemaining <= 21) status = "soon";
 
-  return { nextMiles, nextDate, estCurrentMiles, milesRemaining, daysRemaining, status };
+  return { nextMiles, nextDate, daysRemaining, status };
 }
 
 // ---- Rendering ----
@@ -111,7 +110,7 @@ function renderCard(car) {
   const s = computeStatus(car);
   const dueText = s.status === "overdue"
     ? `Overdue — was due ${fmtDate(s.nextDate)}`
-    : `Next due ~${fmtDate(s.nextDate)} or ${s.nextMiles.toLocaleString()} mi`;
+    : `Next due by ${fmtDate(s.nextDate)} (or ${s.nextMiles.toLocaleString()} mi, if sooner)`;
 
   const statusLabel = { ok: "On track", soon: "Due soon", overdue: "Overdue" }[s.status];
 
@@ -127,6 +126,7 @@ function renderCard(car) {
       <div class="due-line">${dueText}</div>
       <div class="actions">
         <button class="btn btn-secondary" onclick="openEditCar('${car.id}')">Edit</button>
+        <button class="btn btn-secondary" onclick="openHistory('${car.id}')">History</button>
         <button class="btn btn-secondary" onclick="openLogChange('${car.id}')">Log Change</button>
         <button class="btn btn-primary" onclick="downloadIcs('${car.id}')">📅 Reminder</button>
       </div>
@@ -196,7 +196,6 @@ function openEditCar(id) {
   document.getElementById("f-recinterval").dataset.userEdited = "1";
   document.getElementById("f-lastdate").value = car.lastDate;
   document.getElementById("f-lastmiles").value = car.lastMiles;
-  document.getElementById("f-avgmiles").value = car.avgMiles;
   document.getElementById("btn-delete").classList.remove("hidden");
   showSheet(carSheet);
 }
@@ -211,14 +210,13 @@ carForm.addEventListener("submit", (e) => {
     recInterval: Number(document.getElementById("f-recinterval").value),
     lastDate: document.getElementById("f-lastdate").value,
     lastMiles: Number(document.getElementById("f-lastmiles").value),
-    avgMiles: Number(document.getElementById("f-avgmiles").value),
   };
 
   if (editingId) {
     const car = cars.find(c => c.id === editingId);
     Object.assign(car, data);
   } else {
-    cars.push({ id: uid(), ...data });
+    cars.push({ id: uid(), history: [], ...data });
   }
   saveCars();
   hideSheet(carSheet);
@@ -247,7 +245,8 @@ function openLogChange(id) {
   loggingId = id;
   document.getElementById("log-car-name").textContent = car.name;
   document.getElementById("l-date").value = toISODate(new Date());
-  document.getElementById("l-miles").value = computeStatus(car).estCurrentMiles;
+  document.getElementById("l-miles").value = "";
+  document.getElementById("l-miles").placeholder = `Last: ${car.lastMiles.toLocaleString()} mi`;
   showSheet(logSheet);
 }
 
@@ -255,6 +254,8 @@ logForm.addEventListener("submit", (e) => {
   e.preventDefault();
   const car = cars.find(c => c.id === loggingId);
   if (!car) return;
+  if (!car.history) car.history = [];
+  car.history.push({ date: car.lastDate, miles: car.lastMiles });
   car.lastDate = document.getElementById("l-date").value;
   car.lastMiles = Number(document.getElementById("l-miles").value);
   saveCars();
@@ -263,6 +264,43 @@ logForm.addEventListener("submit", (e) => {
 });
 
 document.getElementById("log-cancel").addEventListener("click", () => hideSheet(logSheet));
+
+// ---- History sheet ----
+const historySheet = document.getElementById("history-sheet");
+
+function openHistory(id) {
+  const car = cars.find(c => c.id === id);
+  if (!car) return;
+  document.getElementById("history-car-name").textContent = `${car.name} — History`;
+
+  const entries = [
+    { date: car.lastDate, miles: car.lastMiles, current: true },
+    ...((car.history || []).slice().reverse()),
+  ];
+
+  const list = document.getElementById("history-list");
+  if (entries.length === 1) {
+    list.innerHTML = `<p class="hint">No past changes logged yet — this is the first one on record.</p>`;
+  } else {
+    list.innerHTML = entries.map((e, i) => {
+      const prev = entries[i + 1];
+      const delta = prev ? e.miles - prev.miles : null;
+      return `
+        <div class="history-item">
+          <div>
+            <div class="history-date">${fmtDate(parseDate(e.date))}${e.current ? " (current)" : ""}</div>
+            <div class="history-miles">${e.miles.toLocaleString()} mi</div>
+          </div>
+          ${delta != null ? `<div class="history-delta">+${delta.toLocaleString()} mi</div>` : ""}
+        </div>
+      `;
+    }).join("");
+  }
+
+  showSheet(historySheet);
+}
+
+document.getElementById("history-close").addEventListener("click", () => hideSheet(historySheet));
 
 // ---- Sheet show/hide ----
 function showSheet(sheet) {
@@ -278,6 +316,7 @@ function hideSheet(sheet) {
 sheetBackdrop.addEventListener("click", () => {
   hideSheet(carSheet);
   hideSheet(logSheet);
+  hideSheet(historySheet);
 });
 
 // ---- ICS calendar export ----

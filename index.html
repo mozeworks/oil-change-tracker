@@ -23,17 +23,18 @@
       <input type="text" id="f-name" placeholder="e.g. Mom's Corolla" required>
     </label>
 
-    <label>Make (optional, for oil suggestion)
+    <label>Make (optional, rough starting point)
       <select id="f-make">
-        <option value="">— Select to auto-fill —</option>
+        <option value="">— Select for a starting suggestion —</option>
       </select>
     </label>
 
     <div class="row">
       <label>Oil type
-        <input type="text" id="f-oiltype" placeholder="e.g. Full Synthetic 0W-20">
+        <input type="text" id="f-oiltype" placeholder="e.g. Full Synthetic 5W-30">
       </label>
     </div>
+    <p class="hint">Auto-fill is a rough starting point only — exact spec varies by year and engine. Check your owner's manual and correct if needed.</p>
 
     <div class="row2">
       <label>Manufacturer interval (mi)
@@ -43,7 +44,7 @@
         <input type="number" inputmode="numeric" id="f-recinterval" placeholder="5000" required>
       </label>
     </div>
-    <p class="hint" id="rec-hint">We suggest half the manufacturer interval for better engine life.</p>
+    <p class="hint" id="rec-hint">We suggest half the manufacturer interval for better engine life. Change is due at this mileage or 6 months, whichever comes first.</p>
 
     <div class="row2">
       <label>Last change date
@@ -53,10 +54,6 @@
         <input type="number" inputmode="numeric" id="f-lastmiles" placeholder="45000" required>
       </label>
     </div>
-
-    <label>Average miles driven / month
-      <input type="number" inputmode="numeric" id="f-avgmiles" placeholder="1000" required>
-    </label>
 
     <div class="sheet-actions">
       <button type="button" id="btn-delete" class="btn btn-danger hidden">Delete</button>
@@ -83,6 +80,16 @@
       <button type="submit" class="btn btn-primary">Save</button>
     </div>
   </form>
+</div>
+
+<!-- History sheet -->
+<div id="history-sheet" class="sheet hidden">
+  <div class="sheet-handle"></div>
+  <h2 id="history-car-name">History</h2>
+  <div id="history-list" class="history-list"></div>
+  <div class="sheet-actions">
+    <button type="button" id="history-close" class="btn btn-ghost">Close</button>
+  </div>
 </div>
 
 <script src="carsdata.js"></script>

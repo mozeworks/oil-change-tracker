@@ -299,6 +299,50 @@ header.top .subtitle {
   margin-top: 4px;
 }
 
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
+.history-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+
+.history-date {
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.history-miles {
+  font-size: 16px;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+.history-delta {
+  font-size: 13px;
+  color: var(--green);
+  font-weight: 600;
+}
+
+.car-card .actions {
+  flex-wrap: wrap;
+}
+
+.car-card .actions button {
+  flex: 1 1 calc(50% - 4px);
+}
+
 footer.install-hint {
   text-align: center;
   color: var(--text-dim);
