@@ -76,14 +76,16 @@ function render() {
     app.innerHTML = `
       <header class="top">
         <div>
-          <h1>Oil Change Tracker</h1>
-          <div class="subtitle">Stay ahead of every change</div>
+          <h1>Oil Tracker</h1>
+          <div class="subtitle">Keep your fleet running smooth</div>
         </div>
+        <button class="fab" onclick="openAddCar()">+</button>
       </header>
       <div class="empty-state">
-        <span class="emoji">🛢️</span>
-        <div>No cars yet. Add your first one to get started.</div>
-        <button class="btn btn-primary" onclick="openAddCar()">+ Add a Car</button>
+        <div class="emoji">🛢️</div>
+        <h2>No cars yet</h2>
+        <p>Start tracking your vehicles to stay on top of maintenance</p>
+        <button class="btn btn-primary" onclick="openAddCar()">Add your first car</button>
       </div>
     `;
     return;
@@ -94,41 +96,81 @@ function render() {
   app.innerHTML = `
     <header class="top">
       <div>
-        <h1>Oil Change Tracker</h1>
-        <div class="subtitle">${cars.length} car${cars.length > 1 ? "s" : ""} tracked</div>
+        <h1>Oil Tracker</h1>
+        <div class="subtitle">Keep your fleet running smooth</div>
       </div>
       <button class="fab" onclick="openAddCar()">+</button>
     </header>
     <div class="car-list">
       ${sorted.map(renderCard).join("")}
     </div>
-    <footer class="install-hint">Add this app to your home screen for one-tap access.</footer>
   `;
 }
 
 function renderCard(car) {
   const s = computeStatus(car);
-  const dueText = s.status === "overdue"
-    ? `Overdue — was due ${fmtDate(s.nextDate)}`
-    : `Next due by ${fmtDate(s.nextDate)} (or ${s.nextMiles.toLocaleString()} mi, if sooner)`;
+  const today = new Date();
+  const lastDate = parseDate(car.lastDate);
+  const daysSince = Math.round((today - lastDate) / 86400000);
 
-  const statusLabel = { ok: "On track", soon: "Due soon", overdue: "Overdue" }[s.status];
+  // Calculate progress percentage (0-100%)
+  const milesSince = Math.min(car.lastMiles + (car.lastMiles > 0 ? car.recInterval * 0.5 : 0), car.lastMiles + car.recInterval);
+  const progressPercent = Math.round(((car.lastMiles - milesSince) / car.recInterval) * 100);
+
+  const statusLabel = s.status === "overdue"
+    ? "OVERDUE"
+    : s.status === "soon"
+    ? `${s.daysRemaining} days left`
+    : `${s.daysRemaining} mi to go`;
+
+  const statusBadgeClass = s.status === "overdue" ? "overdue" : s.status === "soon" ? "due" : "";
+
+  const currentMiles = Math.min(car.lastMiles + car.recInterval, car.lastMiles + car.recInterval);
+  const milesUntilDue = Math.max(0, s.nextMiles - car.lastMiles);
+  const progressFill = Math.min(100, ((car.recInterval - milesUntilDue) / car.recInterval) * 100);
 
   return `
-    <div class="car-card status-${s.status}">
-      <div class="row-top">
-        <div>
-          <h3>${escapeHtml(car.name)}</h3>
-          <div class="meta">${escapeHtml(car.oilType || "Oil type not set")}</div>
+    <div class="car-card">
+      <div class="card-header">
+        <div class="car-info">
+          <h2>${escapeHtml(car.name)}</h2>
+          <p>${escapeHtml(car.oilType || "Oil type not specified")}</p>
         </div>
-        <span class="badge status-${s.status}">${statusLabel}</span>
+        <span class="status-badge ${statusBadgeClass}">${statusLabel}</span>
       </div>
-      <div class="due-line">${dueText}</div>
-      <div class="actions">
-        <button class="btn btn-secondary" onclick="openEditCar('${car.id}')">Edit</button>
-        <button class="btn btn-secondary" onclick="openHistory('${car.id}')">History</button>
-        <button class="btn btn-secondary" onclick="openLogChange('${car.id}')">Log Change</button>
-        <button class="btn btn-primary" onclick="downloadIcs('${car.id}')">📅 Reminder</button>
+
+      <div class="progress-section">
+        <div class="progress-label">
+          <span>Oil Change Progress</span>
+          <span class="progress-value">${Math.min(100, Math.round(progressFill))}%</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" style="width: ${progressFill}%; background: linear-gradient(90deg, ${s.status === 'overdue' ? '#f87171' : '#38bdf8'} 0%, ${s.status === 'overdue' ? '#fb7185' : '#22d3ee'} 100%);"></div>
+        </div>
+      </div>
+
+      <div class="details-grid">
+        <div class="detail-item">
+          <div class="detail-label">Miles Since Change</div>
+          <div class="detail-value">${car.lastMiles.toLocaleString()} mi</div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-label">Last Changed</div>
+          <div class="detail-value">${daysSince} day${daysSince !== 1 ? 's' : ''}</div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-label">Manufacturer Interval</div>
+          <div class="detail-value">${car.mfgInterval.toLocaleString()} mi</div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-label">Next Due (miles)</div>
+          <div class="detail-value">${s.nextMiles.toLocaleString()} mi</div>
+        </div>
+      </div>
+
+      <div class="card-actions">
+        <button class="btn btn-log" onclick="openLogChange('${car.id}')">Log Change</button>
+        <button class="btn btn-edit" onclick="openEditCar('${car.id}')">Edit</button>
       </div>
     </div>
   `;
