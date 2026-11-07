@@ -456,6 +456,12 @@ header.top .subtitle {
   font-size: 16px;
 }
 
+.sheet input[readonly] {
+  background: transparent;
+  border-style: dashed;
+  color: var(--text-dim);
+}
+
 .sheet input::placeholder {
   color: var(--text-dim);
 }
