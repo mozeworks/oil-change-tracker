@@ -171,6 +171,8 @@ function renderCard(car) {
       <div class="card-actions">
         <button class="btn btn-log" onclick="openLogChange('${car.id}')">Log Change</button>
         <button class="btn btn-edit" onclick="openEditCar('${car.id}')">Edit</button>
+        <button class="btn btn-history" onclick="openHistory('${car.id}')">History</button>
+        <button class="btn btn-reminder" onclick="downloadIcs('${car.id}')">📅 Reminder</button>
       </div>
     </div>
   `;
@@ -367,7 +369,9 @@ function downloadIcs(id) {
   if (!car) return;
   const s = computeStatus(car);
   const dt = s.nextDate;
-  const dateStr = `${dt.getFullYear()}${String(dt.getMonth() + 1).padStart(2, "0")}${String(dt.getDate()).padStart(2, "0")}`;
+  const fmt = d => `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
+  const dateStr = fmt(dt);
+  const endStr = fmt(new Date(dt.getFullYear(), dt.getMonth(), dt.getDate() + 1));
   const stamp = new Date().toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
   const title = `Oil Change: ${car.name} - ${s.nextMiles.toLocaleString()} mi`;
   const desc = `Time to change the oil in ${car.name}.\\nUse: ${car.oilType || "see owner's manual"}\\nTarget mileage: ${s.nextMiles.toLocaleString()} mi (recommended interval: ${car.recInterval} mi, manufacturer suggests ${car.mfgInterval} mi).`;
@@ -381,7 +385,7 @@ function downloadIcs(id) {
     `UID:${car.id}-${dateStr}@oil-change-tracker`,
     `DTSTAMP:${stamp}`,
     `DTSTART;VALUE=DATE:${dateStr}`,
-    `DTEND;VALUE=DATE:${dateStr}`,
+    `DTEND;VALUE=DATE:${endStr}`,
     `SUMMARY:${icsEscape(title)}`,
     `DESCRIPTION:${icsEscape(desc)}`,
     "BEGIN:VALARM",

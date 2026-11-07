@@ -267,7 +267,8 @@ header.top .subtitle {
 }
 
 .card-actions {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 8px;
   position: relative;
   z-index: 1;
@@ -305,6 +306,28 @@ header.top .subtitle {
 .btn-edit:active {
   background: rgba(56, 189, 248, 0.25);
   border-color: rgba(56, 189, 248, 0.5);
+}
+
+.btn-history {
+  background: rgba(148, 163, 184, 0.12);
+  color: var(--text-dim);
+  border-color: rgba(148, 163, 184, 0.3);
+}
+
+.btn-history:active {
+  background: rgba(148, 163, 184, 0.22);
+  border-color: rgba(148, 163, 184, 0.5);
+}
+
+.btn-reminder {
+  background: rgba(251, 191, 36, 0.15);
+  color: var(--yellow);
+  border-color: rgba(251, 191, 36, 0.3);
+}
+
+.btn-reminder:active {
+  background: rgba(251, 191, 36, 0.25);
+  border-color: rgba(251, 191, 36, 0.5);
 }
 
 .btn-primary {
