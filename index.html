@@ -45,11 +45,11 @@
       <label>Manufacturer interval (mi)
         <input type="number" inputmode="numeric" id="f-mfginterval" placeholder="10000" required>
       </label>
-      <label>Recommended interval (mi)
-        <input type="number" inputmode="numeric" id="f-recinterval" placeholder="5000" required>
+      <label>Change every (half, mi)
+        <input type="number" id="f-recinterval" placeholder="5000" readonly tabindex="-1">
       </label>
     </div>
-    <p class="hint" id="rec-hint">We suggest half the manufacturer interval for better engine life. Change is due at this mileage or 6 months, whichever comes first.</p>
+    <p class="hint" id="rec-hint">Next change is due at your odometer reading plus half the manufacturer interval, or 6 months, whichever comes first.</p>
 
     <div class="row2">
       <label>Last change date

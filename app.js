@@ -55,11 +55,16 @@ function fmtDate(d) {
 // stretches out no matter how little (or how much) the car is driven.
 const MAX_MONTHS = 6;
 
+// Change interval is always half the manufacturer's recommendation.
+function halfInterval(car) {
+  return Math.round(car.mfgInterval / 2);
+}
+
 function computeStatus(car) {
   const lastDate = parseDate(car.lastDate);
   const today = new Date();
 
-  const nextMiles = car.lastMiles + car.recInterval;
+  const nextMiles = car.lastMiles + halfInterval(car);
   const nextDate = addMonths(lastDate, MAX_MONTHS);
   const daysRemaining = Math.round((nextDate - today) / 86400000);
 
@@ -113,21 +118,18 @@ function renderCard(car) {
   const lastDate = parseDate(car.lastDate);
   const daysSince = Math.round((today - lastDate) / 86400000);
 
-  // Calculate progress percentage (0-100%)
-  const milesSince = Math.min(car.lastMiles + (car.lastMiles > 0 ? car.recInterval * 0.5 : 0), car.lastMiles + car.recInterval);
-  const progressPercent = Math.round(((car.lastMiles - milesSince) / car.recInterval) * 100);
 
   const statusLabel = s.status === "overdue"
     ? "OVERDUE"
     : s.status === "soon"
     ? `${s.daysRemaining} days left`
-    : `${s.daysRemaining} mi to go`;
+    : `${s.daysRemaining} days left`;
 
   const statusBadgeClass = s.status === "overdue" ? "overdue" : s.status === "soon" ? "due" : "";
 
-  const currentMiles = Math.min(car.lastMiles + car.recInterval, car.lastMiles + car.recInterval);
-  const milesUntilDue = Math.max(0, s.nextMiles - car.lastMiles);
-  const progressFill = Math.min(100, ((car.recInterval - milesUntilDue) / car.recInterval) * 100);
+  // Progress toward the 6-month date limit (the app doesn't know today's odometer).
+  const totalDays = Math.max(1, Math.round((s.nextDate - lastDate) / 86400000));
+  const progressFill = Math.max(0, Math.min(100, (daysSince / totalDays) * 100));
 
   return `
     <div class="car-card">
@@ -151,7 +153,7 @@ function renderCard(car) {
 
       <div class="details-grid">
         <div class="detail-item">
-          <div class="detail-label">Miles Since Change</div>
+          <div class="detail-label">Odometer at Change</div>
           <div class="detail-value">${car.lastMiles.toLocaleString()} mi</div>
         </div>
         <div class="detail-item">
@@ -171,6 +173,8 @@ function renderCard(car) {
       <div class="card-actions">
         <button class="btn btn-log" onclick="openLogChange('${car.id}')">Log Change</button>
         <button class="btn btn-edit" onclick="openEditCar('${car.id}')">Edit</button>
+        <button class="btn btn-history" onclick="openHistory('${car.id}')">History</button>
+        <button class="btn btn-reminder" onclick="downloadIcs('${car.id}')">📅 Reminder</button>
       </div>
     </div>
   `;
@@ -205,20 +209,12 @@ makeSelect.addEventListener("change", () => {
 
 document.getElementById("f-mfginterval").addEventListener("input", (e) => {
   const val = Number(e.target.value);
-  const recField = document.getElementById("f-recinterval");
-  if (val && !recField.dataset.userEdited) {
-    recField.value = Math.round(val / 2);
-  }
-});
-
-document.getElementById("f-recinterval").addEventListener("input", (e) => {
-  e.target.dataset.userEdited = "1";
+  document.getElementById("f-recinterval").value = val ? Math.round(val / 2) : "";
 });
 
 function openAddCar() {
   editingId = null;
   carForm.reset();
-  document.getElementById("f-recinterval").dataset.userEdited = "";
   document.getElementById("sheet-title").textContent = "Add Car";
   document.getElementById("btn-delete").classList.add("hidden");
   document.getElementById("f-lastdate").value = toISODate(new Date());
@@ -234,8 +230,7 @@ function openEditCar(id) {
   document.getElementById("f-make").value = car.make || "";
   document.getElementById("f-oiltype").value = car.oilType || "";
   document.getElementById("f-mfginterval").value = car.mfgInterval;
-  document.getElementById("f-recinterval").value = car.recInterval;
-  document.getElementById("f-recinterval").dataset.userEdited = "1";
+  document.getElementById("f-recinterval").value = halfInterval(car);
   document.getElementById("f-lastdate").value = car.lastDate;
   document.getElementById("f-lastmiles").value = car.lastMiles;
   document.getElementById("btn-delete").classList.remove("hidden");
@@ -249,7 +244,7 @@ carForm.addEventListener("submit", (e) => {
     make: makeSelect.value,
     oilType: document.getElementById("f-oiltype").value.trim(),
     mfgInterval: Number(document.getElementById("f-mfginterval").value),
-    recInterval: Number(document.getElementById("f-recinterval").value),
+    recInterval: Math.round(Number(document.getElementById("f-mfginterval").value) / 2),
     lastDate: document.getElementById("f-lastdate").value,
     lastMiles: Number(document.getElementById("f-lastmiles").value),
   };
@@ -367,10 +362,12 @@ function downloadIcs(id) {
   if (!car) return;
   const s = computeStatus(car);
   const dt = s.nextDate;
-  const dateStr = `${dt.getFullYear()}${String(dt.getMonth() + 1).padStart(2, "0")}${String(dt.getDate()).padStart(2, "0")}`;
+  const fmt = d => `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
+  const dateStr = fmt(dt);
+  const endStr = fmt(new Date(dt.getFullYear(), dt.getMonth(), dt.getDate() + 1));
   const stamp = new Date().toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
   const title = `Oil Change: ${car.name} - ${s.nextMiles.toLocaleString()} mi`;
-  const desc = `Time to change the oil in ${car.name}.\\nUse: ${car.oilType || "see owner's manual"}\\nTarget mileage: ${s.nextMiles.toLocaleString()} mi (recommended interval: ${car.recInterval} mi, manufacturer suggests ${car.mfgInterval} mi).`;
+  const desc = `Time to change the oil in ${car.name}.\\nUse: ${car.oilType || "see owner's manual"}\\nTarget mileage: ${s.nextMiles.toLocaleString()} mi (half of the manufacturer's ${car.mfgInterval.toLocaleString()} mi interval).`;
 
   const ics = [
     "BEGIN:VCALENDAR",
@@ -381,7 +378,7 @@ function downloadIcs(id) {
     `UID:${car.id}-${dateStr}@oil-change-tracker`,
     `DTSTAMP:${stamp}`,
     `DTSTART;VALUE=DATE:${dateStr}`,
-    `DTEND;VALUE=DATE:${dateStr}`,
+    `DTEND;VALUE=DATE:${endStr}`,
     `SUMMARY:${icsEscape(title)}`,
     `DESCRIPTION:${icsEscape(desc)}`,
     "BEGIN:VALARM",
